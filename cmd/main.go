@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	msgpack "messagepack/pkg"
+	msgpack "github.com/codescalersinternships/Msgpack-Fatma-Ebrahim/pkg"
 )
 
 func main() {
@@ -12,6 +12,7 @@ func main() {
 		Unum: 0,
 		Snum: -3,
 		Fnum: 3.14,
+		Str:  "Fatma",
 	}
 	bytes, err := msgpack.Pack(object)
 	if err != nil {
