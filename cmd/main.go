@@ -10,7 +10,7 @@ func main() {
 		IsObject: true,
 		Flag:  false,
 		Unum: 0,
-		Snum: -3,
+		Snum: -1000,
 		Fnum: 3.14,
 		Str:  "Fatma",
 	}
