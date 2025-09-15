@@ -12,14 +12,19 @@ func main() {
 	arr[2] = 9.8
 	arr[3] = "world"
 
+	m := make(map[any]any)
+	m["hello"] = 10
+	m["world"] = -20
+
 	object := msgpack.Object{
 		IsObject: true,
-		Flag:  false,
-		Unum: 0,
-		Snum: -1000,
-		Fnum: 3.14,
-		Str:  "Fatma",
-		Arr:  arr,
+		Flag:     false,
+		Unum:     0,
+		Snum:     -1000,
+		Fnum:     3.14,
+		Str:      "Fatma",
+		Arr:      arr,
+		Map:      m,
 	}
 	bytes, err := msgpack.Pack(object)
 	if err != nil {
@@ -28,4 +33,3 @@ func main() {
 
 	fmt.Println(bytes)
 }
-
