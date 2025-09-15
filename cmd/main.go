@@ -6,10 +6,11 @@ import (
 )
 
 func main() {
-	arr := make([]any, 3)
+	arr := make([]any, 4)
 	arr[0] = "hello"
 	arr[1] = 7
 	arr[2] = 9.8
+	arr[3] = "world"
 
 	object := msgpack.Object{
 		IsObject: true,

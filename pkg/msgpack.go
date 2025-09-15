@@ -237,7 +237,7 @@ func encodeArray(arr []any) Array {
 		fmt.Println(objectBytes)
 		bytes = append(bytes, objectBytes...)
 	}
-	fmt.Println("array data",size, t)
+	fmt.Println("array data", size, t)
 
 	return Array{
 		typeByte: t,
@@ -246,136 +246,225 @@ func encodeArray(arr []any) Array {
 	}
 }
 
-func decodeBool(value byte) bool {
+func decodeBool(value byte) (bool, int) {
 	if value == byte(Msgpack_True) {
-		return true
+		return true, 1
 	} else {
-		return false
+		return false, 1
 	}
 }
 
-func decodeUint8(value byte) uint8 {
-	return uint8(value)
+func decodeUint8(value byte) (uint8, int) {
+	return uint8(value), 2
 }
 
-func decodeUint16(value []byte) uint16 {
-	return binary.BigEndian.Uint16(value)
+func decodeUint16(value []byte) (uint16, int) {
+	return binary.BigEndian.Uint16(value[:2]), 3
 }
 
-func decodeUint32(value []byte) uint32 {
-	return binary.BigEndian.Uint32(value)
+func decodeUint32(value []byte) (uint32, int) {
+	return binary.BigEndian.Uint32(value[:4]), 5
 }
-func decodeUint64(value []byte) uint64 {
-	return binary.BigEndian.Uint64(value)
-}
-
-func decodeInt(value []byte) int {
-	return int(binary.BigEndian.Uint64(value))
+func decodeUint64(value []byte) (uint64, int) {
+	return binary.BigEndian.Uint64(value[:8]), 9
 }
 
-func decodeInt8(value byte) int8 {
-	return int8(value)
+func decodeInt(value []byte) (int, int) {
+	return int(binary.BigEndian.Uint64(value[:8])), 9
 }
 
-func decodeInt16(value []byte) int16 {
-	return int16(binary.BigEndian.Uint16(value))
-}
-func decodeInt32(value []byte) int32 {
-	return int32(binary.BigEndian.Uint32(value))
+func decodeInt8(value byte) (int8, int) {
+	return int8(value), 2
 }
 
-func decodeInt64(value []byte) int64 {
-	return int64(binary.BigEndian.Uint64(value))
+func decodeInt16(value []byte) (int16, int) {
+	return int16(binary.BigEndian.Uint16(value[:2])), 3
+}
+func decodeInt32(value []byte) (int32, int) {
+	return int32(binary.BigEndian.Uint32(value[:4])), 5
 }
 
-func decodeFloat32(value []byte) float32 {
-	bin := binary.BigEndian.Uint32(value)
-	return math.Float32frombits(bin)
+func decodeInt64(value []byte) (int64, int) {
+	return int64(binary.BigEndian.Uint64(value[:8])), 9
 }
 
-func decodeFloat64(value []byte) float64 {
-	bin := binary.BigEndian.Uint64(value)
-	return math.Float64frombits(bin)
+func decodeFloat32(value []byte) (float32, int) {
+	bin := binary.BigEndian.Uint32(value[:4])
+	return math.Float32frombits(bin), 5
 }
 
-func decodeString(value []byte) string {
-	return string(value)
+func decodeFloat64(value []byte) (float64, int) {
+	bin := binary.BigEndian.Uint64(value[:8])
+	return math.Float64frombits(bin), 9
+}
+
+func decodeString8(value []byte) (string, int) {
+	size := int(value[0])
+	return string(value[1 : size+1]), 1 + 1 + size
+}
+
+func decodeString16(value []byte) (string, int) {
+	size := decodeSize(value[:2])
+	return string(value[2 : size+2]), 1 + 2 + size
+}
+
+func decodeString32(value []byte) (string, int) {
+	size := decodeSize(value[:4])
+	return string(value[4 : size+4]), 1 + 4 + size
+}
+
+func decodeSize(value []byte) int {
+	if len(value) == 2 {
+		return int(binary.BigEndian.Uint16(value))
+	} else if len(value) == 4 {
+		return int(binary.BigEndian.Uint32(value))
+	} else if len(value) == 8 {
+		return int(binary.BigEndian.Uint64(value))
+	}
+	return 0
+}
+
+func decodeArray16(value []byte) ([]any, int) {
+	size := decodeSize(value[:2])
+	data := value[2:]
+	array := make([]any, size)
+	var offset int
+
+	for i := 0; i < size; i++ {
+		element, offset := deserializeElement(data)
+		array[i] = element
+		data = data[offset:]
+		fmt.Println("decode array:", offset, element, data)
+	}
+	return array, offset
+}
+
+func decodeArray32(value []byte) ([]any, int) {
+	size := decodeSize(value[1:5])
+	data := value[5:]
+	array := make([]any, size)
+	var offset int
+
+	for i := 0; i < size; i++ {
+		element, offset := deserializeElement(data)
+		array[i] = element
+		data = data[offset:]
+		fmt.Println("decode array:", offset, element, data)
+	}
+	return array, offset
+}
+
+func deserializeElement(value []byte) (any, int) {
+	elementType := value[0]
+	switch elementType {
+	case Msgpack_True:
+		return decodeBool(value[0])
+	case Msgpack_False:
+		return decodeBool(value[0])
+	case Msgpack_Uint_8:
+		return decodeUint8(value[1])
+	case Msgpack_Uint_16:
+		return decodeUint16(value[1:])
+	case Msgpack_Uint_32:
+		return decodeUint32(value[1:])
+	case Msgpack_Uint_64:
+		return decodeUint64(value[1:])
+	case Msgpack_Int_8:
+		return decodeInt8(value[1])
+	case Msgpack_Int_16:
+		return decodeInt16(value[1:])
+	case Msgpack_Int_32:
+		return decodeInt32(value[1:])
+	case Msgpack_Int_64:
+		return decodeInt64(value[1:])
+	case Msgpack_Float_32:
+		return decodeFloat32(value[1:])
+	case Msgpack_Float_64:
+		return decodeFloat64(value[1:])
+	case Msgpack_String_8:
+		return decodeString8(value[1:])
+	case Msgpack_String_16:
+		return decodeString16(value[1:])
+	case Msgpack_String_32:
+		return decodeString32(value[1:])
+	case Msgpack_Array_16:
+		return decodeArray16(value[1:])
+	case Msgpack_Array_32:
+		return decodeArray32(value[1:])
+	}
+	return nil, 0
 }
 
 func serializeElement(objectBytes *[]byte, elementType reflect.Kind, elementValue reflect.Value) {
 	switch elementType {
 	case reflect.Bool:
 		*objectBytes = append(*objectBytes, encodeBool(elementValue.Bool()))
-		fmt.Println(decodeBool((*objectBytes)[0]))
 
 	case reflect.Uint8:
 		encodedUint := encodeUint(uint8(elementValue.Uint()))
 		*objectBytes = append(*objectBytes, encodedUint.typeByte, encodedUint.value)
-		fmt.Println(decodeUint8(encodedUint.value))
+
 	case reflect.Uint16:
 		encodedUint := encodeUint16(uint16(elementValue.Uint()))
 		*objectBytes = append(*objectBytes, encodedUint.typeByte)
 		*objectBytes = append(*objectBytes, encodedUint.value...)
-		fmt.Println(decodeUint16(encodedUint.value))
+
 	case reflect.Uint32:
 		encodedUint := encodeUint32(uint32(elementValue.Uint()))
 		*objectBytes = append(*objectBytes, encodedUint.typeByte)
 		*objectBytes = append(*objectBytes, encodedUint.value...)
-		fmt.Println(decodeUint32(encodedUint.value))
+
 	case reflect.Uint64:
 		encodedUint := encodeUint64(uint64(elementValue.Uint()))
 		*objectBytes = append(*objectBytes, encodedUint.typeByte)
 		*objectBytes = append(*objectBytes, encodedUint.value...)
-		fmt.Println(decodeUint64(encodedUint.value))
 
 	case reflect.Int8:
 		encodedInt := encodeInt8(int8(elementValue.Int()))
 		*objectBytes = append(*objectBytes, encodedInt.typeByte, encodedInt.value)
-		fmt.Println(decodeInt8(encodedInt.value))
+
 	case reflect.Int16:
 		encodedInt := encodeInt16(int16(elementValue.Int()))
 		*objectBytes = append(*objectBytes, encodedInt.typeByte)
 		*objectBytes = append(*objectBytes, encodedInt.value...)
-		fmt.Println(decodeInt16(encodedInt.value))
+
 	case reflect.Int32:
 		encodedInt := encodeInt32(int32(elementValue.Int()))
 		*objectBytes = append(*objectBytes, encodedInt.typeByte)
 		*objectBytes = append(*objectBytes, encodedInt.value...)
-		fmt.Println(decodeInt32(encodedInt.value))
+
 	case reflect.Int64:
 		encodedInt := encodeInt64(int64(elementValue.Int()))
 		*objectBytes = append(*objectBytes, encodedInt.typeByte)
 		*objectBytes = append(*objectBytes, encodedInt.value...)
-		fmt.Println(decodeInt64(encodedInt.value))
+
 	case reflect.Int:
 		encodedInt := encodeInt(int(elementValue.Int()))
 		*objectBytes = append(*objectBytes, encodedInt.typeByte)
 		*objectBytes = append(*objectBytes, encodedInt.value...)
-		fmt.Println(decodeInt(encodedInt.value))
 
 	case reflect.Float32:
 		encodedFloat := encodeFloat32(float32(elementValue.Float()))
 		*objectBytes = append(*objectBytes, encodedFloat.typeByte)
 		*objectBytes = append(*objectBytes, encodedFloat.value...)
-		fmt.Println(decodeFloat32(encodedFloat.value))
+
 	case reflect.Float64:
 		encodedFloat := encodeFloat64(elementValue.Float())
 		*objectBytes = append(*objectBytes, encodedFloat.typeByte)
 		*objectBytes = append(*objectBytes, encodedFloat.value...)
-		fmt.Println(decodeFloat64(encodedFloat.value))
 
 	case reflect.String:
 		encodedString := encodeString(elementValue.String())
 		*objectBytes = append(*objectBytes, encodedString.typeByte)
 		*objectBytes = append(*objectBytes, encodedString.size...)
 		*objectBytes = append(*objectBytes, encodedString.value...)
-		fmt.Println(decodeString(encodedString.value))
 
 	case reflect.Slice:
 		encodedArray := encodeArray(elementValue.Interface().([]any))
 		*objectBytes = append(*objectBytes, encodedArray.typeByte)
 		*objectBytes = append(*objectBytes, encodedArray.size...)
 		*objectBytes = append(*objectBytes, encodedArray.value...)
+
 	case reflect.Map:
 
 	default:
@@ -393,11 +482,14 @@ func Pack(obj interface{}) ([]byte, error) {
 		memberType := field.Type.Kind()
 		memberName := field.Name
 		memberValue := v.Field(i)
-		fmt.Println(memberType, memberName, memberValue)
+		fmt.Printf("struct member %d: %s %s %v \n", i, memberType, memberName, memberValue)
 
 		objectBytes := make([]byte, 0)
 		serializeElement(&objectBytes, memberType, memberValue)
-		fmt.Println(objectBytes)
+		fmt.Println("serialized:", objectBytes)
+
+		data, offset := deserializeElement(objectBytes)
+		fmt.Println("deserialized:", data, offset)
 
 		// objectBytes = append(objectBytes, memberName...)
 		// fmt.Println(objectBytes)
