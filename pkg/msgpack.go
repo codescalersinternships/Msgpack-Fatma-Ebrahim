@@ -84,7 +84,7 @@ type Object struct {
 	Fnum     float32
 	Str      string
 	Arr      []any
-	Map      map[any]any
+	Mapp     map[any]any
 }
 
 func encodeBool(value bool) byte {
@@ -200,14 +200,17 @@ func encodeString(value string) String {
 	case len(value) < string_8:
 		size = make([]byte, 0)
 		size = append(size, byte(len(value)))
+		// size = encodeSize(len(value))
 		t = Msgpack_String_8
 	case len(value) < string_16:
-		size = make([]byte, 2)
-		binary.BigEndian.PutUint16(size, uint16(len(value)))
+		// size = make([]byte, 2)
+		// binary.BigEndian.PutUint16(size, uint16(len(value)))
+		size = encodeSize(len(value))
 		t = Msgpack_String_16
 	case len(value) < string_32:
-		size = make([]byte, 4)
-		binary.BigEndian.PutUint32(size, uint32(len(value)))
+		// size = make([]byte, 4)
+		// binary.BigEndian.PutUint32(size, uint32(len(value)))
+		size = encodeSize(len(value))
 		t = Msgpack_String_32
 	}
 
@@ -228,12 +231,14 @@ func encodeArray(arr []any) Array {
 	var t byte
 
 	if len(arr) <= array_16 {
-		size = make([]byte, 2)
-		binary.BigEndian.PutUint16(size, uint16(len(arr)))
+		// size = make([]byte, 2)
+		// binary.BigEndian.PutUint16(size, uint16(len(arr)))
+		size = encodeSize(len(arr))
 		t = Msgpack_Array_16
 	} else if len(arr) <= array_32 {
-		size = make([]byte, 4)
-		binary.BigEndian.PutUint32(size, uint32(len(arr)))
+		// size = make([]byte, 4)
+		// binary.BigEndian.PutUint32(size, uint32(len(arr)))
+		size = encodeSize(len(arr))
 		t = Msgpack_Array_32
 	}
 
@@ -260,12 +265,14 @@ func encodeMap(m map[any]any) Map {
 	var t byte
 
 	if len(m) <= map_16 {
-		size = make([]byte, 2)
-		binary.BigEndian.PutUint16(size, uint16(len(m)))
+		// size = make([]byte, 2)
+		// binary.BigEndian.PutUint16(size, uint16(len(m)))
+		size = encodeSize(len(m))
 		t = Msgpack_Map_16
 	} else if len(m) <= map_32 {
-		size = make([]byte, 4)
-		binary.BigEndian.PutUint32(size, uint32(len(m)))
+		// size = make([]byte, 4)
+		// binary.BigEndian.PutUint32(size, uint32(len(m)))
+		size = encodeSize(len(m))
 		t = Msgpack_Map_32
 	}
 
@@ -274,14 +281,12 @@ func encodeMap(m map[any]any) Map {
 		keyValue := reflect.ValueOf(key)
 		objectBytes := make([]byte, 0)
 		serializeElement(&objectBytes, keyType, keyValue)
-		// fmt.Println("key bytes:",key,objectBytes)
 		bytes = append(bytes, objectBytes...)
 
 		valueType := reflect.TypeOf(val).Kind()
 		valueValue := reflect.ValueOf(val)
 		objectBytes = make([]byte, 0)
 		serializeElement(&objectBytes, valueType, valueValue)
-		// fmt.Println("value bytes:",val,objectBytes)
 		bytes = append(bytes, objectBytes...)
 	}
 
@@ -314,10 +319,6 @@ func decodeUint32(value []byte) (uint32, int) {
 
 func decodeUint64(value []byte) (uint64, int) {
 	return binary.BigEndian.Uint64(value[:8]), 9
-}
-
-func decodeInt(value []byte) (int, int) {
-	return int(binary.BigEndian.Uint64(value[:8])), 9
 }
 
 func decodeInt8(value byte) (int8, int) {
@@ -372,39 +373,58 @@ func decodeSize(value []byte) int {
 	return 0
 }
 
+func encodeSize(size int) []byte {
+	size_16 := int(math.Pow(2, 16) - 1)
+	size_32 := int(math.Pow(2, 32) - 1)
+	var sizeBytes []byte
+	if size <= size_16 {
+		sizeBytes = make([]byte, 2)
+		binary.BigEndian.PutUint16(sizeBytes, uint16(size))
+	} else if size <= size_32 {
+		sizeBytes = make([]byte, 4)
+		binary.BigEndian.PutUint32(sizeBytes, uint32(size))
+	} else {
+		sizeBytes = make([]byte, 8)
+		binary.BigEndian.PutUint64(sizeBytes, uint64(size))
+	}
+	return sizeBytes
+}
+
 func decodeArray16(value []byte) ([]any, int) {
 	size := decodeSize(value[:2])
 	data := value[2:]
 	array := make([]any, size)
-	var offset int
-
+	overallOffset := 0
 	for i := 0; i < size; i++ {
 		element, offset := deserializeElement(data)
 		array[i] = element
 		data = data[offset:]
+		overallOffset += offset
 	}
-	return array, offset
+
+	return array, overallOffset + 3
 }
 
 func decodeArray32(value []byte) ([]any, int) {
 	size := decodeSize(value[:4])
 	data := value[4:]
 	array := make([]any, size)
-	var offset int
+	overallOffset := 0
 
 	for i := 0; i < size; i++ {
 		element, offset := deserializeElement(data)
 		array[i] = element
 		data = data[offset:]
+		overallOffset += offset
 	}
-	return array, offset
+	return array, overallOffset + 5
 }
 
 func decodeMap16(value []byte) (map[any]any, int) {
 	size := decodeSize(value[:2])
 	data := value[2:]
 	m := make(map[any]any)
-	var offset int
+	overallOffset := 0
 
 	for i := 0; i < size; i++ {
 		key, offset := deserializeElement(data)
@@ -412,15 +432,16 @@ func decodeMap16(value []byte) (map[any]any, int) {
 		value, offset := deserializeElement(data)
 		data = data[offset:]
 		m[key] = value
+		overallOffset += offset
 	}
-	return m, offset
+	return m, overallOffset + 3
 }
 
 func decodeMap32(value []byte) (map[any]any, int) {
 	size := decodeSize(value[:4])
 	data := value[4:]
 	m := make(map[any]any)
-	var offset int
+	overallOffset := 0
 
 	for i := 0; i < size; i++ {
 		key, offset := deserializeElement(data)
@@ -428,8 +449,9 @@ func decodeMap32(value []byte) (map[any]any, int) {
 		value, offset := deserializeElement(data)
 		data = data[offset:]
 		m[key] = value
+		overallOffset += offset
 	}
-	return m, offset
+	return m, overallOffset + 5
 }
 
 func deserializeElement(value []byte) (any, int) {
@@ -564,6 +586,18 @@ func Pack(obj interface{}) ([]byte, error) {
 	t := reflect.TypeOf(obj)
 	v := reflect.ValueOf(obj)
 	bytes := make([]byte, 0)
+	size := make([]byte, 0)
+	var mapType byte
+	if t.NumField() <= 16 {
+		size = encodeSize(t.NumField())
+		mapType = Msgpack_Map_16
+	} else if t.NumField() <= 32 {
+		size = encodeSize(t.NumField())
+		mapType = Msgpack_Map_32
+	}
+	bytes = append(bytes, mapType)
+	bytes = append(bytes, size...)
+
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		memberType := field.Type.Kind()
@@ -578,17 +612,17 @@ func Pack(obj interface{}) ([]byte, error) {
 		data, offset := deserializeElement(objectBytes)
 		fmt.Println("deserialized:", data, offset)
 
-		// objectBytes = append(objectBytes, memberName...)
-		// fmt.Println(objectBytes)
+		nameBytes := make([]byte, 0)
+		serializeElement(&nameBytes, reflect.String, reflect.ValueOf(memberName))
+		fmt.Println("name bytes:", nameBytes, memberName)
 
+		bytes = append(bytes, nameBytes...)
 		bytes = append(bytes, objectBytes...)
-		bytes = append(bytes, byte('\n')) // to store the separator == 10
-
 	}
-
 	return bytes, nil
 }
 
-func Unpack(data []byte) (interface{}, error) {
-	return nil, nil
+func Unpack(bytes []byte) (any, error) {
+	unpacked, _ := deserializeElement(bytes)
+	return unpacked, nil
 }
