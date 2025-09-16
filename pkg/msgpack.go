@@ -2,7 +2,6 @@ package msgpack
 
 import (
 	"encoding/binary"
-	// "fmt"
 	"math"
 	"reflect"
 )
@@ -201,16 +200,11 @@ func encodeString(value string) String {
 	case len(value) < string_8:
 		size = make([]byte, 0)
 		size = append(size, byte(len(value)))
-		// size = encodeSize(len(value))
 		t = Msgpack_String_8
 	case len(value) < string_16:
-		// size = make([]byte, 2)
-		// binary.BigEndian.PutUint16(size, uint16(len(value)))
 		size = encodeSize(len(value))
 		t = Msgpack_String_16
 	case len(value) < string_32:
-		// size = make([]byte, 4)
-		// binary.BigEndian.PutUint32(size, uint32(len(value)))
 		size = encodeSize(len(value))
 		t = Msgpack_String_32
 	}
@@ -232,13 +226,9 @@ func encodeArray(arr []any) Array {
 	var t byte
 
 	if len(arr) <= array_16 {
-		// size = make([]byte, 2)
-		// binary.BigEndian.PutUint16(size, uint16(len(arr)))
 		size = encodeSize(len(arr))
 		t = Msgpack_Array_16
 	} else if len(arr) <= array_32 {
-		// size = make([]byte, 4)
-		// binary.BigEndian.PutUint32(size, uint32(len(arr)))
 		size = encodeSize(len(arr))
 		t = Msgpack_Array_32
 	}
@@ -248,10 +238,7 @@ func encodeArray(arr []any) Array {
 			bytes = append(bytes, Msgpack_Nil)
 			continue
 		}
-		elementType := reflect.TypeOf(element).Kind()
-		elementValue := reflect.ValueOf(element)
-		objectBytes := make([]byte, 0)
-		serializeElement(&objectBytes, elementType, elementValue)
+		objectBytes := Serialize(element)
 		bytes = append(bytes, objectBytes...)
 	}
 
@@ -270,28 +257,18 @@ func encodeMap(m map[any]any) Map {
 	var t byte
 
 	if len(m) <= map_16 {
-		// size = make([]byte, 2)
-		// binary.BigEndian.PutUint16(size, uint16(len(m)))
 		size = encodeSize(len(m))
 		t = Msgpack_Map_16
 	} else if len(m) <= map_32 {
-		// size = make([]byte, 4)
-		// binary.BigEndian.PutUint32(size, uint32(len(m)))
 		size = encodeSize(len(m))
 		t = Msgpack_Map_32
 	}
 
 	for key, val := range m {
-		keyType := reflect.TypeOf(key).Kind()
-		keyValue := reflect.ValueOf(key)
-		objectBytes := make([]byte, 0)
-		serializeElement(&objectBytes, keyType, keyValue)
+		objectBytes := Serialize(key)
 		bytes = append(bytes, objectBytes...)
 
-		valueType := reflect.TypeOf(val).Kind()
-		valueValue := reflect.ValueOf(val)
-		objectBytes = make([]byte, 0)
-		serializeElement(&objectBytes, valueType, valueValue)
+		objectBytes = Serialize(val)
 		bytes = append(bytes, objectBytes...)
 	}
 
@@ -300,6 +277,23 @@ func encodeMap(m map[any]any) Map {
 		value:    bytes,
 		size:     size,
 	}
+}
+
+func encodeSize(size int) []byte {
+	size_16 := int(math.Pow(2, 16) - 1)
+	size_32 := int(math.Pow(2, 32) - 1)
+	var sizeBytes []byte
+	if size <= size_16 {
+		sizeBytes = make([]byte, 2)
+		binary.BigEndian.PutUint16(sizeBytes, uint16(size))
+	} else if size <= size_32 {
+		sizeBytes = make([]byte, 4)
+		binary.BigEndian.PutUint32(sizeBytes, uint32(size))
+	} else {
+		sizeBytes = make([]byte, 8)
+		binary.BigEndian.PutUint64(sizeBytes, uint64(size))
+	}
+	return sizeBytes
 }
 
 func decodeBool(value byte) (bool, int) {
@@ -378,22 +372,7 @@ func decodeSize(value []byte) int {
 	return 0
 }
 
-func encodeSize(size int) []byte {
-	size_16 := int(math.Pow(2, 16) - 1)
-	size_32 := int(math.Pow(2, 32) - 1)
-	var sizeBytes []byte
-	if size <= size_16 {
-		sizeBytes = make([]byte, 2)
-		binary.BigEndian.PutUint16(sizeBytes, uint16(size))
-	} else if size <= size_32 {
-		sizeBytes = make([]byte, 4)
-		binary.BigEndian.PutUint32(sizeBytes, uint32(size))
-	} else {
-		sizeBytes = make([]byte, 8)
-		binary.BigEndian.PutUint64(sizeBytes, uint64(size))
-	}
-	return sizeBytes
-}
+
 
 func decodeArray16(value []byte) ([]any, int) {
 	size := decodeSize(value[:2])
@@ -401,7 +380,7 @@ func decodeArray16(value []byte) ([]any, int) {
 	array := make([]any, size)
 	overallOffset := 0
 	for i := 0; i < size; i++ {
-		element, offset := deserializeElement(data)
+		element, offset := deserialize_helper(data)
 		array[i] = element
 		data = data[offset:]
 		overallOffset += offset
@@ -417,7 +396,7 @@ func decodeArray32(value []byte) ([]any, int) {
 	overallOffset := 0
 
 	for i := 0; i < size; i++ {
-		element, offset := deserializeElement(data)
+		element, offset := deserialize_helper(data)
 		array[i] = element
 		data = data[offset:]
 		overallOffset += offset
@@ -432,9 +411,9 @@ func decodeMap16(value []byte) (map[any]any, int) {
 	overallOffset := 0
 
 	for i := 0; i < size; i++ {
-		key, offset := deserializeElement(data)
+		key, offset := deserialize_helper(data)
 		data = data[offset:]
-		value, offset := deserializeElement(data)
+		value, offset := deserialize_helper(data)
 		data = data[offset:]
 		m[key] = value
 		overallOffset += offset
@@ -449,9 +428,9 @@ func decodeMap32(value []byte) (map[any]any, int) {
 	overallOffset := 0
 
 	for i := 0; i < size; i++ {
-		key, offset := deserializeElement(data)
+		key, offset := deserialize_helper(data)
 		data = data[offset:]
-		value, offset := deserializeElement(data)
+		value, offset := deserialize_helper(data)
 		data = data[offset:]
 		m[key] = value
 		overallOffset += offset
@@ -459,7 +438,8 @@ func decodeMap32(value []byte) (map[any]any, int) {
 	return m, overallOffset + 5
 }
 
-func deserializeElement(value []byte) (any, int) {
+
+func deserialize_helper(value []byte) (any, int) {
 	elementType := value[0]
 	switch elementType {
 	case Msgpack_True:
@@ -507,87 +487,98 @@ func deserializeElement(value []byte) (any, int) {
 	return nil, 0
 }
 
-func serializeElement(objectBytes *[]byte, elementType reflect.Kind, elementValue reflect.Value) {
+func Serialize(elementVal any) []byte {
+	elementValue := reflect.ValueOf(elementVal)
+	objectBytes := make([]byte, 0)
+	elementType := reflect.TypeOf(elementVal).Kind()
 	switch elementType {
 	case reflect.Bool:
-		*objectBytes = append(*objectBytes, encodeBool(elementValue.Bool()))
+		objectBytes = append(objectBytes, encodeBool(elementValue.Bool()))
 
 	case reflect.Uint8:
 		encodedUint := encodeUint(uint8(elementValue.Uint()))
-		*objectBytes = append(*objectBytes, encodedUint.typeByte, encodedUint.value)
+		objectBytes = append(objectBytes, encodedUint.typeByte, encodedUint.value)
 
 	case reflect.Uint16:
 		encodedUint := encodeUint16(uint16(elementValue.Uint()))
-		*objectBytes = append(*objectBytes, encodedUint.typeByte)
-		*objectBytes = append(*objectBytes, encodedUint.value...)
+		objectBytes = append(objectBytes, encodedUint.typeByte)
+		objectBytes = append(objectBytes, encodedUint.value...)
 
 	case reflect.Uint32:
 		encodedUint := encodeUint32(uint32(elementValue.Uint()))
-		*objectBytes = append(*objectBytes, encodedUint.typeByte)
-		*objectBytes = append(*objectBytes, encodedUint.value...)
+		objectBytes = append(objectBytes, encodedUint.typeByte)
+		objectBytes = append(objectBytes, encodedUint.value...)
 
 	case reflect.Uint64:
 		encodedUint := encodeUint64(uint64(elementValue.Uint()))
-		*objectBytes = append(*objectBytes, encodedUint.typeByte)
-		*objectBytes = append(*objectBytes, encodedUint.value...)
+		objectBytes = append(objectBytes, encodedUint.typeByte)
+		objectBytes = append(objectBytes, encodedUint.value...)
 
 	case reflect.Int8:
 		encodedInt := encodeInt8(int8(elementValue.Int()))
-		*objectBytes = append(*objectBytes, encodedInt.typeByte, encodedInt.value)
+		objectBytes = append(objectBytes, encodedInt.typeByte, encodedInt.value)
 
 	case reflect.Int16:
 		encodedInt := encodeInt16(int16(elementValue.Int()))
-		*objectBytes = append(*objectBytes, encodedInt.typeByte)
-		*objectBytes = append(*objectBytes, encodedInt.value...)
+		objectBytes = append(objectBytes, encodedInt.typeByte)
+		objectBytes = append(objectBytes, encodedInt.value...)
 
 	case reflect.Int32:
 		encodedInt := encodeInt32(int32(elementValue.Int()))
-		*objectBytes = append(*objectBytes, encodedInt.typeByte)
-		*objectBytes = append(*objectBytes, encodedInt.value...)
+		objectBytes = append(objectBytes, encodedInt.typeByte)
+		objectBytes = append(objectBytes, encodedInt.value...)
 
 	case reflect.Int64:
 		encodedInt := encodeInt64(int64(elementValue.Int()))
-		*objectBytes = append(*objectBytes, encodedInt.typeByte)
-		*objectBytes = append(*objectBytes, encodedInt.value...)
+		objectBytes = append(objectBytes, encodedInt.typeByte)
+		objectBytes = append(objectBytes, encodedInt.value...)
 
 	case reflect.Int:
 		encodedInt := encodeInt(int(elementValue.Int()))
-		*objectBytes = append(*objectBytes, encodedInt.typeByte)
-		*objectBytes = append(*objectBytes, encodedInt.value...)
+		objectBytes = append(objectBytes, encodedInt.typeByte)
+		objectBytes = append(objectBytes, encodedInt.value...)
 
 	case reflect.Float32:
 		encodedFloat := encodeFloat32(float32(elementValue.Float()))
-		*objectBytes = append(*objectBytes, encodedFloat.typeByte)
-		*objectBytes = append(*objectBytes, encodedFloat.value...)
+		objectBytes = append(objectBytes, encodedFloat.typeByte)
+		objectBytes = append(objectBytes, encodedFloat.value...)
 
 	case reflect.Float64:
 		encodedFloat := encodeFloat64(elementValue.Float())
-		*objectBytes = append(*objectBytes, encodedFloat.typeByte)
-		*objectBytes = append(*objectBytes, encodedFloat.value...)
+		objectBytes = append(objectBytes, encodedFloat.typeByte)
+		objectBytes = append(objectBytes, encodedFloat.value...)
 
 	case reflect.String:
 		encodedString := encodeString(elementValue.String())
-		*objectBytes = append(*objectBytes, encodedString.typeByte)
-		*objectBytes = append(*objectBytes, encodedString.size...)
-		*objectBytes = append(*objectBytes, encodedString.value...)
+		objectBytes = append(objectBytes, encodedString.typeByte)
+		objectBytes = append(objectBytes, encodedString.size...)
+		objectBytes = append(objectBytes, encodedString.value...)
 
 	case reflect.Slice:
 		encodedArray := encodeArray(elementValue.Interface().([]any))
-		*objectBytes = append(*objectBytes, encodedArray.typeByte)
-		*objectBytes = append(*objectBytes, encodedArray.size...)
-		*objectBytes = append(*objectBytes, encodedArray.value...)
+		objectBytes = append(objectBytes, encodedArray.typeByte)
+		objectBytes = append(objectBytes, encodedArray.size...)
+		objectBytes = append(objectBytes, encodedArray.value...)
 
 	case reflect.Map:
 		encodedMap := encodeMap(elementValue.Interface().(map[any]any))
-		*objectBytes = append(*objectBytes, encodedMap.typeByte)
-		*objectBytes = append(*objectBytes, encodedMap.size...)
-		*objectBytes = append(*objectBytes, encodedMap.value...)
+		objectBytes = append(objectBytes, encodedMap.typeByte)
+		objectBytes = append(objectBytes, encodedMap.size...)
+		objectBytes = append(objectBytes, encodedMap.value...)
 
 	default:
-		*objectBytes = append(*objectBytes, Msgpack_Nil)
+		objectBytes = append(objectBytes, Msgpack_Nil)
 	}
 
+	return objectBytes
+
 }
+
+func Deserialize(value []byte) any {
+	res, _ := deserialize_helper(value)
+	return res
+}
+
 
 func Pack(obj interface{}) ([]byte, error) {
 	t := reflect.TypeOf(obj)
@@ -607,21 +598,12 @@ func Pack(obj interface{}) ([]byte, error) {
 
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		memberType := field.Type.Kind()
 		memberName := field.Name
-		memberValue := v.Field(i)
-		// fmt.Printf("struct member %d: %s %s %v \n", i, memberType, memberName, memberValue)
+		memberValue := v.Field(i).Interface()
 
-		objectBytes := make([]byte, 0)
-		serializeElement(&objectBytes, memberType, memberValue)
-		// fmt.Println("serialized:", objectBytes)
+		objectBytes := Serialize(memberValue)
 
-		// data, offset := deserializeElement(objectBytes)
-		// fmt.Println("deserialized:", data, offset)
-
-		nameBytes := make([]byte, 0)
-		serializeElement(&nameBytes, reflect.String, reflect.ValueOf(memberName))
-		// fmt.Println("name bytes:", nameBytes, memberName)
+		nameBytes := Serialize(memberName)
 
 		bytes = append(bytes, nameBytes...)
 		bytes = append(bytes, objectBytes...)
@@ -630,7 +612,7 @@ func Pack(obj interface{}) ([]byte, error) {
 }
 
 func Unpack(bytes []byte, obj interface{}) (any, error) {
-	unpacked, _ := deserializeElement(bytes)
+	unpacked := Deserialize(bytes)
 
 	v := reflect.ValueOf(obj).Elem()
 	for key, val := range unpacked.(map[any]any) {

@@ -38,7 +38,7 @@ func TestPackString(t *testing.T) {
 			t.Errorf("Expected size of string to be 200, got %d", str_size)
 		}
 
-		str_value, _ := deserializeElement(data_bytes)
+		str_value:= Deserialize(data_bytes)
 		if str_value != strings.Repeat("x", 200) {
 			t.Errorf("Expected value of string to be %s, got %s", strings.Repeat("x", 200), str_value)
 		}
@@ -69,7 +69,7 @@ func TestPackString(t *testing.T) {
 			t.Errorf("Expected size of string to be 260, got %d", str_size)
 		}
 
-		str_value, _ := deserializeElement(data_bytes)
+		str_value:= Deserialize(data_bytes)
 		if str_value != strings.Repeat("x", 260) {
 			t.Errorf("Expected value of string to be %s, got %s", strings.Repeat("x", 260), str_value)
 		}
@@ -101,7 +101,7 @@ func TestPackString(t *testing.T) {
 			t.Errorf("Expected size of string to be 70000, got %d", str_size)
 		}
 
-		str_value, _ := deserializeElement(data_bytes)
+		str_value:= Deserialize(data_bytes)
 		if str_value != strings.Repeat("x", 70000) {
 			t.Errorf("Expected value of string to be %s, got %s", strings.Repeat("x", 70000), str_value)
 		}
@@ -131,7 +131,7 @@ func TestPackFloat(t *testing.T) {
 			t.Errorf("Expected type of float to be 203 (float32), got %d", float_type)
 		}
 
-		float_value, _ := deserializeElement(data_bytes)
+		float_value:= Deserialize(data_bytes)
 		if reflect.TypeOf(float_value).Kind() != reflect.Float32 {
 			t.Errorf("Expected type of float to be float32, got %v", reflect.TypeOf(float_value).Kind())
 		}
@@ -155,7 +155,7 @@ func TestPackFloat(t *testing.T) {
 			t.Errorf("Expected type of float to be 203 (float64), got %d", float_type)
 		}
 
-		float_value, _ := deserializeElement(data_bytes)
+		float_value:= Deserialize(data_bytes)
 		if reflect.TypeOf(float_value).Kind() != reflect.Float64 {
 			t.Errorf("Expected type of float to be float64, got %v", reflect.TypeOf(float_value).Kind())
 		}
@@ -187,7 +187,7 @@ func TestPackInt(t *testing.T) {
 			t.Errorf("Expected type of int to be 208 (int8), got %d", int_type)
 		}
 
-		int_value, _ := deserializeElement(data_bytes)
+		int_value := Deserialize(data_bytes)
 		if reflect.TypeOf(int_value).Kind() != reflect.Int8 {
 			t.Errorf("Expected type of int to be int8, got %v", reflect.TypeOf(int_value).Kind())
 		}
@@ -210,7 +210,7 @@ func TestPackInt(t *testing.T) {
 			t.Errorf("Expected type of int to be 209 (int16), got %d", int_type)
 		}
 
-		int_value, _ := deserializeElement(data_bytes)
+		int_value := Deserialize(data_bytes)
 		if reflect.TypeOf(int_value).Kind() != reflect.Int16 {
 			t.Errorf("Expected type of int to be int16, got %v", reflect.TypeOf(int_value).Kind())
 		}
@@ -232,7 +232,7 @@ func TestPackInt(t *testing.T) {
 			t.Errorf("Expected type of int to be 210 (int32), got %d", int_type)
 		}
 
-		int_value, _ := deserializeElement(data_bytes)
+		int_value := Deserialize(data_bytes)
 		if reflect.TypeOf(int_value).Kind() != reflect.Int32 {
 			t.Errorf("Expected type of int to be int32, got %v", reflect.TypeOf(int_value).Kind())
 		}
@@ -255,7 +255,7 @@ func TestPackInt(t *testing.T) {
 			t.Errorf("Expected type of int to be 211 (int64), got %d", int_type)
 		}
 
-		int_value, _ := deserializeElement(data_bytes)
+		int_value:= Deserialize(data_bytes)
 		if reflect.TypeOf(int_value).Kind() != reflect.Int64 {
 			t.Errorf("Expected type of int to be int64, got %v", reflect.TypeOf(int_value).Kind())
 		}
@@ -288,7 +288,7 @@ func TestPackUint(t *testing.T) {
 			t.Errorf("Expected type of uint to be 204 (uint8), got %d", uint_type)
 		}
 
-		uint_value, _ := deserializeElement(data_bytes)
+		uint_value:= Deserialize(data_bytes)
 		if reflect.TypeOf(uint_value).Kind() != reflect.Uint8 {
 			t.Errorf("Expected type of uint to be uint8, got %v", reflect.TypeOf(uint_value).Kind())
 		}
@@ -311,7 +311,7 @@ func TestPackUint(t *testing.T) {
 			t.Errorf("Expected type of uint to be 205 (uint16), got %d", uint_type)
 		}
 
-		uint_value, _ := deserializeElement(data_bytes)
+		uint_value:= Deserialize(data_bytes)
 		if reflect.TypeOf(uint_value).Kind() != reflect.Uint16 {
 			t.Errorf("Expected type of uint to be uint16, got %v", reflect.TypeOf(uint_value).Kind())
 		}
@@ -334,7 +334,7 @@ func TestPackUint(t *testing.T) {
 			t.Errorf("Expected type of uint to be 206 (uint32), got %d", uint_type)
 		}
 
-		uint_value, _ := deserializeElement(data_bytes)
+		uint_value:= Deserialize(data_bytes)
 		if reflect.TypeOf(uint_value).Kind() != reflect.Uint32 {
 			t.Errorf("Expected type of uint to be uint32, got %v", reflect.TypeOf(uint_value).Kind())
 		}
@@ -356,7 +356,7 @@ func TestPackUint(t *testing.T) {
 			t.Errorf("Expected type of uint to be 207 (uint64), got %d", uint_type)
 		}
 
-		uint_value, _ := deserializeElement(data_bytes)
+		uint_value:= Deserialize(data_bytes)
 		if reflect.TypeOf(uint_value).Kind() != reflect.Uint64 {
 			t.Errorf("Expected type of uint to be uint64, got %v", reflect.TypeOf(uint_value).Kind())
 		}
@@ -389,7 +389,7 @@ func TestPackArray(t *testing.T) {
 			t.Errorf("Expected size of array to be 3, got %d", array_size)
 		}
 
-		array_value, _ := deserializeElement(data_bytes)
+		array_value:= Deserialize(data_bytes)
 		if reflect.TypeOf(array_value).Kind() != reflect.Slice {
 			t.Errorf("Expected type of array to be slice, got %v", reflect.TypeOf(array_value).Kind())
 		}
@@ -425,7 +425,7 @@ func TestPackArray(t *testing.T) {
 			t.Errorf("Expected size of array to be 70000, got %d", array_size)
 		}
 
-		array_value, _ := deserializeElement(data_bytes)
+		array_value:= Deserialize(data_bytes)
 		if reflect.TypeOf(array_value).Kind() != reflect.Slice {
 			t.Errorf("Expected type of array to be slice, got %v", reflect.TypeOf(array_value).Kind())
 		}
@@ -456,7 +456,7 @@ func TestPackArray(t *testing.T) {
 			t.Errorf("Expected size of array to be 3, got %d", array_size)
 		}
 
-		array_value, _ := deserializeElement(data_bytes)
+		array_value:= Deserialize(data_bytes)
 		if reflect.TypeOf(array_value).Kind() != reflect.Slice {
 			t.Errorf("Expected type of array to be slice, got %v", reflect.TypeOf(array_value).Kind())
 		}
@@ -500,7 +500,7 @@ func TestPackMap(t *testing.T) {
 			t.Errorf("Expected size of map to be 2, got %d", map_size)
 		}
 
-		map_value, _ := deserializeElement(data_bytes)
+		map_value := Deserialize(data_bytes)
 		if reflect.TypeOf(map_value).Kind() != reflect.Map {
 			t.Errorf("Expected type of map to be map, got %v", reflect.TypeOf(map_value).Kind())
 		}
@@ -535,7 +535,7 @@ func TestPackMap(t *testing.T) {
 			t.Errorf("Expected size of map to be 70000, got %d", map_size)
 		}
 
-		map_value, _ := deserializeElement(data_bytes)
+		map_value:= Deserialize(data_bytes)
 		if reflect.TypeOf(map_value).Kind() != reflect.Map {
 			t.Errorf("Expected type of map to be map, got %v", reflect.TypeOf(map_value).Kind())
 		}
@@ -566,7 +566,7 @@ func TestPackMap(t *testing.T) {
 			t.Errorf("Expected size of map to be 0, got %d", map_size)
 		}
 
-		map_value, _ := deserializeElement(data_bytes)
+		map_value := Deserialize(data_bytes)
 		if reflect.TypeOf(map_value).Kind() != reflect.Map {
 			t.Errorf("Expected type of map to be map, got %v", reflect.TypeOf(map_value).Kind())
 		}

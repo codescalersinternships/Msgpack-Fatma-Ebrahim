@@ -7,9 +7,9 @@ import (
 
 func main() {
 	arr := make([]any, 3)
-	// arr[0] = "hello"
-	// arr[1] = 7
-	// arr[2] = 9.8
+	arr[0] = "hello"
+	arr[1] = 7
+	arr[2] = 9.8
 
 	m := make(map[any]any)
 	m["hello"] = 10
@@ -38,5 +38,17 @@ func main() {
 	}
 	fmt.Printf("Unpacked: %+v\n", unpacked)
 	fmt.Printf("Object: %+v\n", obj)
+
+	ser := msgpack.Serialize(m)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Printf("Serialized: %+v\n", ser)
+
+	des := msgpack.Deserialize(ser)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Printf("Deserialized: %+v\n", des)
 
 }
