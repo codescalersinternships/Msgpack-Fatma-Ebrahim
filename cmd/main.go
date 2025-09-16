@@ -25,6 +25,7 @@ func main() {
 		Arr:      arr,
 		Mapp:     m,
 	}
+	
 	packed, err := msgpack.Pack(object)
 	if err != nil {
 		fmt.Println(err)
