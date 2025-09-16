@@ -6,24 +6,24 @@ import (
 )
 
 func main() {
-	arr := make([]any, 4)
-	arr[0] = "hello"
-	arr[1] = 7
-	arr[2] = 9.8
-	arr[3] = "world"
+	arr := make([]any, 3)
+	// arr[0] = "hello"
+	// arr[1] = 7
+	// arr[2] = 9.8
 
 	m := make(map[any]any)
 	m["hello"] = 10
 	m["world"] = -20
 
 	object := msgpack.Object{
-		IsObject: true,
-		Flag:     false,
-		Unum:     0,
-		Snum:     -1000,
-		Fnum:     3.14,
-		Str:      "Fatma",
-		Arr:      arr,
+		// IsObject: true,
+		// Flag:     false,
+		// Unum:     0,
+		// Snum:     -1000,
+		// Fnum:     3.14,
+		// Str:      "Fatma",
+		Arr:  arr,
+		Mapp: m,
 	}
 	packed, err := msgpack.Pack(object)
 	if err != nil {

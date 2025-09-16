@@ -2,7 +2,7 @@ package msgpack
 
 import (
 	"encoding/binary"
-	"fmt"
+	// "fmt"
 	"math"
 	"reflect"
 )
@@ -78,14 +78,14 @@ type Map struct {
 }
 
 type Object struct {
-	IsObject bool
-	Flag     bool
-	Unum     uint8
-	Snum     int16
-	Fnum     float32
-	Str      string
-	Arr      []any
-	Mapp     map[any]any
+	// IsObject bool
+	// Flag     bool
+	// Unum     uint8
+	// Snum     int16
+	// Fnum     float32
+	// Str      string
+	Arr  []any
+	Mapp map[any]any
 }
 
 func encodeBool(value bool) byte {
@@ -244,6 +244,10 @@ func encodeArray(arr []any) Array {
 	}
 
 	for _, element := range arr {
+		if element == nil {
+			bytes = append(bytes, Msgpack_Nil)
+			continue
+		}
 		elementType := reflect.TypeOf(element).Kind()
 		elementValue := reflect.ValueOf(element)
 		objectBytes := make([]byte, 0)
@@ -496,6 +500,8 @@ func deserializeElement(value []byte) (any, int) {
 		return decodeMap16(value[1:])
 	case Msgpack_Map_32:
 		return decodeMap32(value[1:])
+	case Msgpack_Nil:
+		return nil, 1
 	}
 
 	return nil, 0
@@ -604,18 +610,18 @@ func Pack(obj interface{}) ([]byte, error) {
 		memberType := field.Type.Kind()
 		memberName := field.Name
 		memberValue := v.Field(i)
-		fmt.Printf("struct member %d: %s %s %v \n", i, memberType, memberName, memberValue)
+		// fmt.Printf("struct member %d: %s %s %v \n", i, memberType, memberName, memberValue)
 
 		objectBytes := make([]byte, 0)
 		serializeElement(&objectBytes, memberType, memberValue)
-		fmt.Println("serialized:", objectBytes)
+		// fmt.Println("serialized:", objectBytes)
 
-		data, offset := deserializeElement(objectBytes)
-		fmt.Println("deserialized:", data, offset)
+		// data, offset := deserializeElement(objectBytes)
+		// fmt.Println("deserialized:", data, offset)
 
 		nameBytes := make([]byte, 0)
 		serializeElement(&nameBytes, reflect.String, reflect.ValueOf(memberName))
-		fmt.Println("name bytes:", nameBytes, memberName)
+		// fmt.Println("name bytes:", nameBytes, memberName)
 
 		bytes = append(bytes, nameBytes...)
 		bytes = append(bytes, objectBytes...)

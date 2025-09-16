@@ -125,7 +125,7 @@ func TestPackFloat(t *testing.T) {
 		if err != nil {
 			t.Errorf("Expected nil, got %v", err)
 		}
-		fmt.Println(data_bytes)
+
 		float_type := data_bytes[0]
 		if float_type != 202 {
 			t.Errorf("Expected type of float to be 203 (float32), got %d", float_type)
@@ -144,13 +144,11 @@ func TestPackFloat(t *testing.T) {
 		}
 
 		packed, err := Pack(obj)
-		fmt.Println(packed)
 		data_bytes := packed[16+8:]
 
 		if err != nil {
 			t.Errorf("Expected nil, got %v", err)
 		}
-		fmt.Println(data_bytes)
 
 		float_type := data_bytes[0]
 		if float_type != 203 {
@@ -197,12 +195,11 @@ func TestPackInt(t *testing.T) {
 
 	t.Run("test pack with int16", func(t *testing.T) {
 		obj := Object{
-			Snum16: 300,
+			Snum16: -300,
 		}
 
 		packed, err := Pack(obj)
 		data_bytes := packed[12+2+6 : 20+3]
-		fmt.Println(data_bytes)
 
 		if err != nil {
 			t.Errorf("Expected nil, got %v", err)
@@ -280,7 +277,7 @@ func TestPackUint(t *testing.T) {
 		}
 
 		packed, err := Pack(obj)
-		data_bytes := packed[3+2+5 : 10+2] 
+		data_bytes := packed[3+2+5 : 10+2]
 
 		if err != nil {
 			t.Errorf("Expected nil, got %v", err)
@@ -303,7 +300,7 @@ func TestPackUint(t *testing.T) {
 		}
 
 		packed, err := Pack(obj)
-		data_bytes := packed[12+2+6 : 20+3] 
+		data_bytes := packed[12+2+6 : 20+3]
 
 		if err != nil {
 			t.Errorf("Expected nil, got %v", err)
@@ -322,11 +319,11 @@ func TestPackUint(t *testing.T) {
 
 	t.Run("test pack with uint32", func(t *testing.T) {
 		obj := Object{
-			Unum32: 100000,
+			Unum32: 70000,
 		}
 
 		packed, err := Pack(obj)
-		data_bytes := packed[23+2+6 : 31+5] 
+		data_bytes := packed[23+2+6 : 31+5]
 
 		if err != nil {
 			t.Errorf("Expected nil, got %v", err)
@@ -349,7 +346,7 @@ func TestPackUint(t *testing.T) {
 		}
 
 		packed, err := Pack(obj)
-		data_bytes := packed[36+2+6:] 
+		data_bytes := packed[36+2+6:]
 		if err != nil {
 			t.Errorf("Expected nil, got %v", err)
 		}
@@ -366,6 +363,219 @@ func TestPackUint(t *testing.T) {
 	})
 }
 
+func TestPackArray(t *testing.T) {
+	type Object struct {
+		Arr []any
+	}
+	t.Run("test pack with array16", func(t *testing.T) {
+		arr := []any{1.1, 2.2, 3.3}
+		obj := Object{
+			Arr: arr,
+		}
+		packed, err := Pack(obj)
+		if err != nil {
+			t.Errorf("Expected nil, got %v", err)
+		}
+		data_bytes := packed[3+5:]
+
+		array_type := data_bytes[0]
+
+		if array_type != 220 {
+			t.Errorf("Expected type of array to be 220 (array), got %d", array_type)
+		}
+
+		array_size := decodeSize(data_bytes[1:3])
+		if array_size != 3 {
+			t.Errorf("Expected size of array to be 3, got %d", array_size)
+		}
+
+		array_value, _ := deserializeElement(data_bytes)
+		if reflect.TypeOf(array_value).Kind() != reflect.Slice {
+			t.Errorf("Expected type of array to be slice, got %v", reflect.TypeOf(array_value).Kind())
+		}
+		if !reflect.DeepEqual(array_value, arr) {
+			t.Errorf("Expected array to be %v, got %v", arr, array_value)
+		}
+
+	})
+
+	t.Run("test pack with array32", func(t *testing.T) {
+		arr := make([]any, 70000)
+		for i := range arr {
+			arr[i] = true
+		}
+		obj := Object{
+			Arr: arr,
+		}
+		packed, err := Pack(obj)
+		if err != nil {
+			t.Errorf("Expected nil, got %v", err)
+		}
+
+		data_bytes := packed[3+5:]
+
+		array_type := data_bytes[0]
+
+		if array_type != 221 {
+			t.Errorf("Expected type of array to be 221 (array32), got %d", array_type)
+		}
+
+		array_size := decodeSize(data_bytes[1:5])
+		if array_size != 70000 {
+			t.Errorf("Expected size of array to be 70000, got %d", array_size)
+		}
+
+		array_value, _ := deserializeElement(data_bytes)
+		if reflect.TypeOf(array_value).Kind() != reflect.Slice {
+			t.Errorf("Expected type of array to be slice, got %v", reflect.TypeOf(array_value).Kind())
+		}
+		if !reflect.DeepEqual(array_value, arr) {
+			t.Errorf("Expected array to be %v, got %v", arr[:5], array_value.([]any)[:5]) // print first few elements
+		}
+	})
+
+	t.Run("test pack with empty array", func(t *testing.T) {
+		arr := make([]any, 3)
+		obj := Object{
+			Arr: arr,
+		}
+		packed, err := Pack(obj)
+		if err != nil {
+			t.Errorf("Expected nil, got %v", err)
+		}
+		data_bytes := packed[3+5:]
+
+		array_type := data_bytes[0]
+
+		if array_type != 220 {
+			t.Errorf("Expected type of array to be 220 (array), got %d", array_type)
+		}
+
+		array_size := decodeSize(data_bytes[1:3])
+		if array_size != 3 {
+			t.Errorf("Expected size of array to be 3, got %d", array_size)
+		}
+
+		array_value, _ := deserializeElement(data_bytes)
+		if reflect.TypeOf(array_value).Kind() != reflect.Slice {
+			t.Errorf("Expected type of array to be slice, got %v", reflect.TypeOf(array_value).Kind())
+		}
+
+		array := array_value.([]any)
+		if array[0] != nil {
+			t.Errorf("Expected array element to be nil, got %v", array[0])
+		}
+
+	})
+
+}
+
+func TestPackMap(t *testing.T) {
+	type Object struct {
+		Dict map[any]any
+	}
+
+	t.Run("test pack with map16", func(t *testing.T) {
+		m := map[any]any{
+			"Lang": "Go",
+			"Ver":  "1.19",
+		}
+		obj := Object{
+			Dict: m,
+		}
+		packed, err := Pack(obj)
+		if err != nil {
+			t.Errorf("Expected nil, got %v", err)
+		}
+
+		data_bytes := packed[3+6:]
+
+		map_type := data_bytes[0]
+		if map_type != 222 {
+			t.Errorf("Expected type of map to be 222 (map16), got %d", map_type)
+		}
+
+		map_size := decodeSize(data_bytes[1:3])
+		if map_size != 2 {
+			t.Errorf("Expected size of map to be 2, got %d", map_size)
+		}
+
+		map_value, _ := deserializeElement(data_bytes)
+		if reflect.TypeOf(map_value).Kind() != reflect.Map {
+			t.Errorf("Expected type of map to be map, got %v", reflect.TypeOf(map_value).Kind())
+		}
+
+		if !reflect.DeepEqual(map_value, m) {
+			t.Errorf("Expected map to be %v, got %v", m, map_value)
+		}
+	})
+
+	t.Run("test pack with map32", func(t *testing.T) {
+		m := make(map[any]any, 70000)
+		for i := 0; i < 70000; i++ {
+			m[fmt.Sprintf("k%d", i)] = fmt.Sprintf("v%d", i)
+		}
+		obj := Object{
+			Dict: m,
+		}
+		packed, err := Pack(obj)
+		if err != nil {
+			t.Errorf("Expected nil, got %v", err)
+		}
+
+		data_bytes := packed[3+6:]
+
+		map_type := data_bytes[0]
+		if map_type != 223 {
+			t.Errorf("Expected type of map to be 223 (map32), got %d", map_type)
+		}
+
+		map_size := decodeSize(data_bytes[1:5])
+		if map_size != 70000 {
+			t.Errorf("Expected size of map to be 70000, got %d", map_size)
+		}
+
+		map_value, _ := deserializeElement(data_bytes)
+		if reflect.TypeOf(map_value).Kind() != reflect.Map {
+			t.Errorf("Expected type of map to be map, got %v", reflect.TypeOf(map_value).Kind())
+		}
+
+		if !reflect.DeepEqual(map_value, m) {
+			t.Errorf("Expected map to be %v, got %v", m, map_value)
+		}
+	})
+
+	t.Run("test pack with empty map", func(t *testing.T) {
+		m := make(map[any]any)
+		obj := Object{
+			Dict: m,
+		}
+		packed, err := Pack(obj)
+		if err != nil {
+			t.Errorf("Expected nil, got %v", err)
+		}
+		data_bytes := packed[3+6:]
+
+		map_type := data_bytes[0]
+		if map_type != 222 {
+			t.Errorf("Expected type of map to be 222 (map16), got %d", map_type)
+		}
+
+		map_size := decodeSize(data_bytes[1:3])
+		if map_size != 0 {
+			t.Errorf("Expected size of map to be 0, got %d", map_size)
+		}
+
+		map_value, _ := deserializeElement(data_bytes)
+		if reflect.TypeOf(map_value).Kind() != reflect.Map {
+			t.Errorf("Expected type of map to be map, got %v", reflect.TypeOf(map_value).Kind())
+		}
+
+		if !reflect.DeepEqual(map_value, m) {
+			t.Errorf("Expected map to be %v, got %v", m, map_value)
+		}
+	})
+}
 
 func TestAll(t *testing.T) {
 	t.Run("test pack and unpack with string8", func(t *testing.T) {
