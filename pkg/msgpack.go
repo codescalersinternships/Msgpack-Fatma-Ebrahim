@@ -7,31 +7,32 @@ import (
 	"reflect"
 )
 
-const Msgpack_Nil = 0xc0
-const Msgpack_False = 0xc2
-const Msgpack_True = 0xc3
+const Msgpack_Nil = 0xc0   //192
+const Msgpack_False = 0xc2 //194
+const Msgpack_True = 0xc3  //195
 
-const Msgpack_Uint_8 = 0xcc
-const Msgpack_Uint_16 = 0xcd
-const Msgpack_Uint_32 = 0xce
-const Msgpack_Uint_64 = 0xcf
+const Msgpack_Uint_8 = 0xcc  //204
+const Msgpack_Uint_16 = 0xcd //205
+const Msgpack_Uint_32 = 0xce //206
+const Msgpack_Uint_64 = 0xcf //207
 
-const Msgpack_Int_8 = 0xd0
-const Msgpack_Int_16 = 0xd1
-const Msgpack_Int_32 = 0xd2
-const Msgpack_Int_64 = 0xd3
+const Msgpack_Int_8 = 0xd0  //208
+const Msgpack_Int_16 = 0xd1 //209
+const Msgpack_Int_32 = 0xd2 //210
+const Msgpack_Int_64 = 0xd3 //211
 
-const Msgpack_Float_32 = 0xca
-const Msgpack_Float_64 = 0xcb
+const Msgpack_Float_32 = 0xca //202
+const Msgpack_Float_64 = 0xcb //203
 
-const Msgpack_String_8 = 0xd9
-const Msgpack_String_16 = 0xda
-const Msgpack_String_32 = 0xdb
+const Msgpack_String_8 = 0xd9  //217
+const Msgpack_String_16 = 0xda //218
+const Msgpack_String_32 = 0xdb //219
 
-const Msgpack_Array_16 = 0xdc
-const Msgpack_Array_32 = 0xdd
-const Msgpack_Map_16 = 0xde
-const Msgpack_Map_32 = 0xdf
+const Msgpack_Array_16 = 0xdc //220
+const Msgpack_Array_32 = 0xdd //221
+
+const Msgpack_Map_16 = 0xde //222
+const Msgpack_Map_32 = 0xdf //223
 
 type Uint_8 struct {
 	typeByte byte
@@ -139,7 +140,7 @@ func encodeInt(value int) Int {
 
 func encodeInt8(value int8) Int_8 {
 	return Int_8{
-		typeByte: Msgpack_Uint_8,
+		typeByte: Msgpack_Int_8,
 		value:    byte(value),
 	}
 }
