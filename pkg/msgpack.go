@@ -622,7 +622,14 @@ func Pack(obj interface{}) ([]byte, error) {
 	return bytes, nil
 }
 
-func Unpack(bytes []byte) (any, error) {
+func Unpack(bytes []byte, obj interface{}) (any, error) {
 	unpacked, _ := deserializeElement(bytes)
+
+	v := reflect.ValueOf(obj).Elem()
+	for key, val := range unpacked.(map[any]any) {
+		field := v.FieldByName(key.(string))
+		field.Set(reflect.ValueOf(val))
+	}
+
 	return unpacked, nil
 }

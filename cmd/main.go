@@ -24,20 +24,19 @@ func main() {
 		Fnum:     3.14,
 		Str:      "Fatma",
 		Arr:      arr,
-		Mapp:     m,
 	}
 	packed, err := msgpack.Pack(object)
 	if err != nil {
 		fmt.Println(err)
 	}
-
 	fmt.Printf("Packed: %+v\n", packed)
 
-	unpacked, err := msgpack.Unpack(packed)
+	var obj msgpack.Object
+	unpacked, err := msgpack.Unpack(packed, &obj)
 	if err != nil {
 		fmt.Println(err)
 	}
-
 	fmt.Printf("Unpacked: %+v\n", unpacked)
+	fmt.Printf("Object: %+v\n", obj)
 
 }
