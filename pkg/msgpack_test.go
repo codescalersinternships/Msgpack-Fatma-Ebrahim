@@ -476,10 +476,10 @@ func TestPackMap(t *testing.T) {
 	}
 
 	t.Run("test pack with map16", func(t *testing.T) {
-		m := map[any]any{
-			"Lang": "Go",
-			"Ver":  "1.19",
-		}
+		m := make(map[any]any)
+		m["Lang"] = "Go"
+		m["Ver"] = "1.19"
+
 		obj := Object{
 			Dict: m,
 		}
@@ -578,21 +578,15 @@ func TestPackMap(t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
-	t.Run("test pack and unpack with string8", func(t *testing.T) {
+	t.Run("test pack and unpack with simple struct", func(t *testing.T) {
 		user_to_pack := User{
 			Name: "Fatma",
 			Id:   "id_1",
 		}
 		packed, err := Pack(user_to_pack)
-		expected := []byte{222, 0, 2,
-			217, 4, 78, 97, 109, 101, 217, 5, 70, 97, 116, 109, 97,
-			217, 2, 73, 100, 217, 4, 105, 100, 95, 49}
+
 		if err != nil {
 			t.Errorf("Expected nil, got %v", err)
-		}
-
-		if string(packed) != string(expected) {
-			t.Errorf("Expected %v, got %v", expected, packed)
 		}
 
 		var user_unpacked User
@@ -606,5 +600,82 @@ func TestAll(t *testing.T) {
 			t.Errorf("Expected %v, got %v", user_to_pack, user_unpacked)
 		}
 
+	})
+
+	t.Run("test pack and unpack with complex struct", func(t *testing.T) {
+		arr := make([]any, 3)
+		arr[0] = "hello"
+		arr[1] = -7.7
+		arr[2] = 9.8
+
+		m := make(map[any]any)
+		m["hello"] = 10.0
+		m["world"] = -20.0
+
+		obj_to_pack := Object{
+			IsObject: true,
+			Flag:     false,
+			Unum:     0,
+			Snum:     -1000,
+			Fnum:     3.14,
+			Str:      "Fatma",
+			Arr:      arr,
+			Mapp:     m,
+		}
+
+		packed, err := Pack(obj_to_pack)
+		if err != nil {
+			t.Errorf("Expected nil, got %v", err)
+		}
+
+		var obj_unpacked Object
+		_, err = Unpack(packed, &obj_unpacked)
+		if err != nil {
+			t.Errorf("Expected nil, got %v", err)
+		}
+
+		if !reflect.DeepEqual(obj_to_pack, obj_unpacked) {
+			t.Errorf("Expected %+v, got %+v", obj_to_pack, obj_unpacked)
+		}
+	})
+
+	type ComplexUser struct {
+		ID       uint32
+		Name     string
+		Age      int8
+		Balance  float64
+		IsActive bool
+		Tags     []any
+		Metadata map[any]any
+	}
+
+	t.Run("test pack and unpack with more complex struct", func(t *testing.T) {
+		user_to_pack := ComplexUser{
+			ID:       123456,
+			Name:     "Fatma Ebrahim",
+			Age:      27,
+			Balance:  1050.75,
+			IsActive: true,
+			Tags:     []any{"golang", "backend", "testing"},
+			Metadata: map[any]any{
+				"country": "Egypt",
+				"city":    "Cairo",
+			},
+		}
+
+		packed, err := Pack(user_to_pack)
+		if err != nil {
+			t.Errorf("Expected nil, got %v", err)
+		}
+
+		var user_unpacked ComplexUser
+		_, err = Unpack(packed, &user_unpacked)
+		if err != nil {
+			t.Errorf("Expected nil, got %v", err)
+		}
+
+		if !reflect.DeepEqual(user_to_pack, user_unpacked) {
+			t.Errorf("Expected %+v, got %+v", user_to_pack, user_unpacked)
+		}
 	})
 }

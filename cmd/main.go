@@ -16,14 +16,14 @@ func main() {
 	m["world"] = -20
 
 	object := msgpack.Object{
-		// IsObject: true,
-		// Flag:     false,
-		// Unum:     0,
-		// Snum:     -1000,
-		// Fnum:     3.14,
-		// Str:      "Fatma",
-		Arr:  arr,
-		Mapp: m,
+		IsObject: true,
+		Flag:     false,
+		Unum:     0,
+		Snum:     -1000,
+		Fnum:     3.14,
+		Str:      "Fatma",
+		Arr:      arr,
+		Mapp:     m,
 	}
 	packed, err := msgpack.Pack(object)
 	if err != nil {

@@ -78,14 +78,14 @@ type Map struct {
 }
 
 type Object struct {
-	// IsObject bool
-	// Flag     bool
-	// Unum     uint8
-	// Snum     int16
-	// Fnum     float32
-	// Str      string
-	Arr  []any
-	Mapp map[any]any
+	IsObject bool
+	Flag     bool
+	Unum     uint8
+	Snum     int16
+	Fnum     float32
+	Str      string
+	Arr      []any
+	Mapp     map[any]any
 }
 
 func encodeBool(value bool) byte {
