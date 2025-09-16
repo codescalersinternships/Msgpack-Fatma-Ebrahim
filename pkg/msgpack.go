@@ -372,8 +372,6 @@ func decodeSize(value []byte) int {
 	return 0
 }
 
-
-
 func decodeArray16(value []byte) ([]any, int) {
 	size := decodeSize(value[:2])
 	data := value[2:]
@@ -438,7 +436,6 @@ func decodeMap32(value []byte) (map[any]any, int) {
 	return m, overallOffset + 5
 }
 
-
 func deserialize_helper(value []byte) (any, int) {
 	elementType := value[0]
 	switch elementType {
@@ -487,6 +484,7 @@ func deserialize_helper(value []byte) (any, int) {
 	return nil, 0
 }
 
+// a function that serializes an element into a byte array
 func Serialize(elementVal any) []byte {
 	elementValue := reflect.ValueOf(elementVal)
 	objectBytes := make([]byte, 0)
@@ -574,12 +572,13 @@ func Serialize(elementVal any) []byte {
 
 }
 
+// a function that deserializes a byte array into an element
 func Deserialize(value []byte) any {
 	res, _ := deserialize_helper(value)
 	return res
 }
 
-
+// a function that packs an object into a byte array
 func Pack(obj interface{}) ([]byte, error) {
 	t := reflect.TypeOf(obj)
 	v := reflect.ValueOf(obj)
@@ -611,6 +610,7 @@ func Pack(obj interface{}) ([]byte, error) {
 	return bytes, nil
 }
 
+// a function that unpacks a byte array into an object
 func Unpack(bytes []byte, obj interface{}) (any, error) {
 	unpacked := Deserialize(bytes)
 
