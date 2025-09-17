@@ -265,7 +265,7 @@ func TestArray(t *testing.T) {
 		array_type := data_bytes[0]
 
 		if array_type != 220 {
-			t.Errorf("Expected type of array to be 220 (array), got %d", array_type)
+			t.Errorf("Expected type of array to be 220 (array16), got %d", array_type)
 		}
 
 		array_size := decodeSize(data_bytes[1:3])
@@ -316,7 +316,7 @@ func TestArray(t *testing.T) {
 		array_type := data_bytes[0]
 
 		if array_type != 220 {
-			t.Errorf("Expected type of array to be 220 (array), got %d", array_type)
+			t.Errorf("Expected type of array to be 220 (array16), got %d", array_type)
 		}
 
 		array_size := decodeSize(data_bytes[1:3])
@@ -336,6 +336,106 @@ func TestArray(t *testing.T) {
 
 	})
 
+}
+
+func TestBinary(t *testing.T) {
+	t.Run("test serialize and deserialize with binary8", func(t *testing.T) {
+		arr := []byte{1, 2, 3}
+		data_bytes := Serialize(arr)
+		bin_type := data_bytes[0]
+
+		if bin_type != 196 {
+			t.Errorf("Expected type of binary to be 196 (binary8), got %d", bin_type)
+		}
+
+		bin_size := int(data_bytes[1])
+		if bin_size != 3 {
+			t.Errorf("Expected size of binary to be 3, got %d", bin_size)
+		}
+
+		bin_value := Deserialize(data_bytes)
+		if reflect.TypeOf(bin_value).Kind() != reflect.Slice {
+			t.Errorf("Expected type of binary to be slice, got %v", reflect.TypeOf(bin_value).Kind())
+		}
+		if !reflect.DeepEqual(bin_value, arr) {
+			t.Errorf("Expected binary to be %v, got %v", arr, bin_value)
+		}
+
+	})
+
+	t.Run("test serialize and deserialize with binary16", func(t *testing.T) {
+		arr := make([]byte, 500)
+		data_bytes := Serialize(arr)
+		bin_type := data_bytes[0]
+
+		if bin_type != 197 {
+			t.Errorf("Expected type of binary to be 197 (binary16), got %d", bin_type)
+		}
+
+		bin_size := decodeSize(data_bytes[1:3])
+		if bin_size != 500 {
+			t.Errorf("Expected size of binary to be 500, got %d", bin_size)
+		}
+
+		bin_value := Deserialize(data_bytes)
+		if reflect.TypeOf(bin_value).Kind() != reflect.Slice {
+			t.Errorf("Expected type of binary to be slice, got %v", reflect.TypeOf(bin_value).Kind())
+		}
+		if !reflect.DeepEqual(bin_value, arr) {
+			t.Errorf("Expected binary to be %v, got %v", arr, bin_value)
+		}
+
+	})
+
+	t.Run("test serialize and deserialize with binary32", func(t *testing.T) {
+		arr := make([]byte, 70000)
+		data_bytes := Serialize(arr)
+		bin_type := data_bytes[0]
+
+		if bin_type != 198 {
+			t.Errorf("Expected type of binary to be 198 (binary32), got %d", bin_type)
+		}
+
+		bin_size := decodeSize(data_bytes[1:5])
+		if bin_size != 70000 {
+			t.Errorf("Expected size of binary to be 70000, got %d", bin_size)
+		}
+
+		bin_value := Deserialize(data_bytes)
+		if reflect.TypeOf(bin_value).Kind() != reflect.Slice {
+			t.Errorf("Expected type of binary to be slice, got %v", reflect.TypeOf(bin_value).Kind())
+		}
+		if !reflect.DeepEqual(bin_value, arr) {
+			t.Errorf("Expected binary to be %v, got %v", arr, bin_value)
+		}
+
+	})
+
+	t.Run("test serialize and deserialize with empty binary", func(t *testing.T) {
+		arr := make([]byte, 1)
+		data_bytes := Serialize(arr)
+		bin_type := data_bytes[0]
+
+		if bin_type != 196 {
+			t.Errorf("Expected type of binary to be 196 (binary8), got %d", bin_type)
+		}
+
+		bin_size := int(data_bytes[1])
+		if bin_size != 1 {
+			t.Errorf("Expected size of binary to be 1, got %d", bin_size)
+		}
+
+		bin_value := Deserialize(data_bytes)
+		if reflect.TypeOf(bin_value).Kind() != reflect.Slice {
+			t.Errorf("Expected type of binary to be slice, got %v", reflect.TypeOf(bin_value).Kind())
+		}
+
+		bin := bin_value.([]byte)
+		if bin[0] != 0 {
+			t.Errorf("Expected binary element to be 0, got %v", bin[0])
+		}
+
+	})
 }
 
 func TestMap(t *testing.T) {
@@ -443,10 +543,10 @@ func TestAll(t *testing.T) {
 	})
 
 	t.Run("test pack and unpack with complex struct", func(t *testing.T) {
-		arr := make([]any, 3)
-		arr[0] = "hello"
-		arr[1] = -7.7
-		arr[2] = 9.8
+		arr := make([]byte, 3)
+		arr[0] = 1
+		arr[1] = 2
+		arr[2] = 3
 
 		m := make(map[any]any)
 		m["hello"] = 10.0

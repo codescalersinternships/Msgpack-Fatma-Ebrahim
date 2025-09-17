@@ -6,10 +6,10 @@ import (
 )
 
 func main() {
-	arr := make([]any, 3)
-	arr[0] = "hello"
+	arr := make([]byte, 3)
+	arr[0] = 0
 	arr[1] = 7
-	arr[2] = 9.8
+	arr[2] = 9
 
 	m := make(map[any]any)
 	m["hello"] = 10
@@ -47,7 +47,9 @@ func main() {
 
 	fmt.Printf("object: %+v\n", obj)
 
-	ser := msgpack.Serialize(typed_map)
+	bytes := make([]byte, 3)
+
+	ser := msgpack.Serialize(bytes)
 	fmt.Printf("Serialized: %+v\n", ser)
 
 	des := msgpack.Deserialize(ser)

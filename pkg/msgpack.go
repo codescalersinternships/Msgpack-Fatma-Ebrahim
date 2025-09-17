@@ -10,6 +10,10 @@ const Msgpack_Nil = 0xc0   //192
 const Msgpack_False = 0xc2 //194
 const Msgpack_True = 0xc3  //195
 
+const Msgpack_Bin_8 = 0xc4  //196
+const Msgpack_Bin_16 = 0xc5 //197
+const Msgpack_Bin_32 = 0xc6 //198
+
 const Msgpack_Uint_8 = 0xcc  //204
 const Msgpack_Uint_16 = 0xcd //205
 const Msgpack_Uint_32 = 0xce //206
@@ -83,7 +87,7 @@ type Object struct {
 	Snum     int16
 	Fnum     float32
 	Str      string
-	Arr      []any
+	Arr      []byte
 	Mapp     map[any]any
 	Typed    map[float32]int16
 }
@@ -219,22 +223,46 @@ func encodeString(value string) String {
 	}
 }
 
-func encodeArray(arr []any) Array {
+func encodeArray(arr any) Array {
+	array_value := reflect.ValueOf(arr)
+	array_size := array_value.Len()
+
+	array_8 := int(math.Pow(2, 8) - 1)
 	array_16 := int(math.Pow(2, 16) - 1)
 	array_32 := int(math.Pow(2, 32) - 1)
 	bytes := make([]byte, 0)
 	var size []byte
 	var t byte
+	bin_flag := false
 
-	if len(arr) <= array_16 {
-		size = encodeSize(len(arr))
+	if array_size != 0 {
+		element := array_value.Index(0).Interface()
+		if element != nil {
+			if reflect.TypeOf(element).Kind() == reflect.Uint8 {
+				bin_flag = true
+			}
+		}
+	}
+	if array_size <= array_16 && !bin_flag {
+		size = encodeSize(array_size)
 		t = Msgpack_Array_16
-	} else if len(arr) <= array_32 {
-		size = encodeSize(len(arr))
+	} else if array_size <= array_32 && !bin_flag {
+		size = encodeSize(array_size)
 		t = Msgpack_Array_32
+	} else if array_size <= array_8 && bin_flag {
+		size = make([]byte, 0)
+		size = append(size, byte(array_size))
+		t = Msgpack_Bin_8
+	} else if array_size <= array_16 && bin_flag {
+		size = encodeSize(array_size)
+		t = Msgpack_Bin_16
+	} else if array_size <= array_32 && bin_flag {
+		size = encodeSize(array_size)
+		t = Msgpack_Bin_32
 	}
 
-	for _, element := range arr {
+	for i := 0; i < array_size; i++ {
+		element := array_value.Index(i).Interface()
 		if element == nil {
 			bytes = append(bytes, Msgpack_Nil)
 			continue
@@ -446,6 +474,51 @@ func decodeMap32(value []byte) (any, int) {
 	return m, overallOffset + 5
 }
 
+func decodeBin8(value []byte) ([]byte, int) {
+	size := int(value[0])
+	data := value[1:]
+	array := make([]byte, size)
+	overallOffset := 0
+	for i := 0; i < size; i++ {
+		element, offset := deserialize_helper(data)
+		array[i] = element.(byte)
+		data = data[offset:]
+		overallOffset += offset
+	}
+
+	return array, overallOffset + 2
+}
+
+func decodeBin16(value []byte) ([]byte, int) {
+	size := decodeSize(value[:2])
+	data := value[2:]
+	array := make([]byte, size)
+	overallOffset := 0
+	for i := 0; i < size; i++ {
+		element, offset := deserialize_helper(data)
+		array[i] = element.(byte)
+		data = data[offset:]
+		overallOffset += offset
+	}
+
+	return array, overallOffset + 3
+}
+
+func decodeBin32(value []byte) ([]byte, int) {
+	size := decodeSize(value[:4])
+	data := value[4:]
+	array := make([]byte, size)
+	overallOffset := 0
+	for i := 0; i < size; i++ {
+		element, offset := deserialize_helper(data)
+		array[i] = element.(byte)
+		data = data[offset:]
+		overallOffset += offset
+	}
+
+	return array, overallOffset + 5
+}
+
 func deserialize_helper(value []byte) (any, int) {
 	elementType := value[0]
 	switch elementType {
@@ -487,6 +560,12 @@ func deserialize_helper(value []byte) (any, int) {
 		return decodeMap16(value[1:])
 	case Msgpack_Map_32:
 		return decodeMap32(value[1:])
+	case Msgpack_Bin_8:
+		return decodeBin8(value[1:])
+	case Msgpack_Bin_16:
+		return decodeBin16(value[1:])
+	case Msgpack_Bin_32:
+		return decodeBin32(value[1:])
 	case Msgpack_Nil:
 		return nil, 1
 	}
@@ -563,7 +642,7 @@ func Serialize(elementVal any) []byte {
 		objectBytes = append(objectBytes, encodedString.value...)
 
 	case reflect.Slice:
-		encodedArray := encodeArray(elementValue.Interface().([]any))
+		encodedArray := encodeArray(elementValue.Interface())
 		objectBytes = append(objectBytes, encodedArray.typeByte)
 		objectBytes = append(objectBytes, encodedArray.size...)
 		objectBytes = append(objectBytes, encodedArray.value...)
