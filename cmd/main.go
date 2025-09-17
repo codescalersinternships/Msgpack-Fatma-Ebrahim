@@ -15,6 +15,10 @@ func main() {
 	m["hello"] = 10
 	m["world"] = -20
 
+	typed_map := make(map[float32]int16)
+	typed_map[1.1] = 1
+	typed_map[2.2] = 2
+
 	object := msgpack.Object{
 		IsObject: true,
 		Flag:     false,
@@ -24,8 +28,9 @@ func main() {
 		Str:      "Fatma",
 		Arr:      arr,
 		Mapp:     m,
+		Typed:    typed_map,
 	}
-	
+
 	packed, err := msgpack.Pack(object)
 	if err != nil {
 		fmt.Println(err)
@@ -37,19 +42,13 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Printf("Unpacked: %+v\n", unpacked)
-	fmt.Printf("Object: %+v\n", obj)
+	unpacked_val := unpacked.(map[any]any)
+	fmt.Printf("Unpacked: %+v\n", unpacked_val["Typed"])
 
-	ser := msgpack.Serialize(m)
-	if err != nil {
-		fmt.Println(err)
-	}
+	ser := msgpack.Serialize(typed_map)
 	fmt.Printf("Serialized: %+v\n", ser)
 
 	des := msgpack.Deserialize(ser)
-	if err != nil {
-		fmt.Println(err)
-	}
 	fmt.Printf("Deserialized: %+v\n", des)
 
 }

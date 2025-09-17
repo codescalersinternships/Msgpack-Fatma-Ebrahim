@@ -85,6 +85,7 @@ type Object struct {
 	Str      string
 	Arr      []any
 	Mapp     map[any]any
+	Typed    map[float32]int16
 }
 
 func encodeBool(value bool) byte {
@@ -249,22 +250,29 @@ func encodeArray(arr []any) Array {
 	}
 }
 
-func encodeMap(m map[any]any) Map {
+func encodeMap(m any) Map {
+	map_value := reflect.ValueOf(m)
+	map_size := map_value.Len()
 	map_16 := int(math.Pow(2, 16) - 1)
 	map_32 := int(math.Pow(2, 32) - 1)
+
 	bytes := make([]byte, 0)
 	var size []byte
 	var t byte
 
-	if len(m) <= map_16 {
-		size = encodeSize(len(m))
+	if map_size <= map_16 {
+		size = encodeSize(map_size)
 		t = Msgpack_Map_16
-	} else if len(m) <= map_32 {
-		size = encodeSize(len(m))
+	} else if map_size <= map_32 {
+		size = encodeSize(map_size)
 		t = Msgpack_Map_32
 	}
 
-	for key, val := range m {
+	iter := map_value.MapRange()
+	for iter.Next() {
+		key := iter.Key().Interface()
+		val := iter.Value().Interface()
+
 		objectBytes := Serialize(key)
 		bytes = append(bytes, objectBytes...)
 
@@ -402,7 +410,7 @@ func decodeArray32(value []byte) ([]any, int) {
 	return array, overallOffset + 5
 }
 
-func decodeMap16(value []byte) (map[any]any, int) {
+func decodeMap16(value []byte) (any, int) {
 	size := decodeSize(value[:2])
 	data := value[2:]
 	m := make(map[any]any)
@@ -411,6 +419,7 @@ func decodeMap16(value []byte) (map[any]any, int) {
 	for i := 0; i < size; i++ {
 		key, offset := deserialize_helper(data)
 		data = data[offset:]
+		overallOffset += offset
 		value, offset := deserialize_helper(data)
 		data = data[offset:]
 		m[key] = value
@@ -419,7 +428,7 @@ func decodeMap16(value []byte) (map[any]any, int) {
 	return m, overallOffset + 3
 }
 
-func decodeMap32(value []byte) (map[any]any, int) {
+func decodeMap32(value []byte) (any, int) {
 	size := decodeSize(value[:4])
 	data := value[4:]
 	m := make(map[any]any)
@@ -428,6 +437,7 @@ func decodeMap32(value []byte) (map[any]any, int) {
 	for i := 0; i < size; i++ {
 		key, offset := deserialize_helper(data)
 		data = data[offset:]
+		overallOffset += offset
 		value, offset := deserialize_helper(data)
 		data = data[offset:]
 		m[key] = value
@@ -559,7 +569,7 @@ func Serialize(elementVal any) []byte {
 		objectBytes = append(objectBytes, encodedArray.value...)
 
 	case reflect.Map:
-		encodedMap := encodeMap(elementValue.Interface().(map[any]any))
+		encodedMap := encodeMap(elementValue.Interface())
 		objectBytes = append(objectBytes, encodedMap.typeByte)
 		objectBytes = append(objectBytes, encodedMap.size...)
 		objectBytes = append(objectBytes, encodedMap.value...)
