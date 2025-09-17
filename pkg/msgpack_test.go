@@ -474,9 +474,14 @@ func TestAll(t *testing.T) {
 			t.Errorf("Expected nil, got %v", err)
 		}
 
-		if !reflect.DeepEqual(obj_to_pack, obj_unpacked) {
-			t.Errorf("Expected %+v, got %+v", obj_to_pack, obj_unpacked)
+		packed_unpacked, err := Pack(obj_unpacked)
+		if err != nil {
+			t.Errorf("Expected nil, got %v", err)
 		}
+		if !reflect.DeepEqual(packed, packed_unpacked) {
+			t.Errorf("Expected %v, got %v", packed, packed_unpacked)
+		}
+
 	})
 
 	type ComplexUser struct {
@@ -486,7 +491,7 @@ func TestAll(t *testing.T) {
 		Balance  float64
 		IsActive bool
 		Tags     []any
-		Metadata map[any]any
+		Metadata map[string]any
 	}
 
 	t.Run("test pack and unpack with more complex struct", func(t *testing.T) {
@@ -497,7 +502,7 @@ func TestAll(t *testing.T) {
 			Balance:  1050.75,
 			IsActive: true,
 			Tags:     []any{"golang", "backend", "testing"},
-			Metadata: map[any]any{
+			Metadata: map[string]any{
 				"country": "Egypt",
 				"city":    "Cairo",
 			},

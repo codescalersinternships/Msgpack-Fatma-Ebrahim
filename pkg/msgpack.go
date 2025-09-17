@@ -420,9 +420,9 @@ func decodeMap16(value []byte) (any, int) {
 		key, offset := deserialize_helper(data)
 		data = data[offset:]
 		overallOffset += offset
-		value, offset := deserialize_helper(data)
+		val, offset := deserialize_helper(data)
 		data = data[offset:]
-		m[key] = value
+		m[key] = val
 		overallOffset += offset
 	}
 	return m, overallOffset + 3
@@ -438,9 +438,9 @@ func decodeMap32(value []byte) (any, int) {
 		key, offset := deserialize_helper(data)
 		data = data[offset:]
 		overallOffset += offset
-		value, offset := deserialize_helper(data)
+		val, offset := deserialize_helper(data)
 		data = data[offset:]
-		m[key] = value
+		m[key] = val
 		overallOffset += offset
 	}
 	return m, overallOffset + 5
@@ -620,14 +620,36 @@ func Pack(obj interface{}) ([]byte, error) {
 	return bytes, nil
 }
 
+func convertMap(m map[any]any, key_type reflect.Type, value_type reflect.Type) any {
+	new_map := reflect.MakeMap(reflect.MapOf(key_type, value_type))
+
+	for key, val := range m {
+		new_map.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(val))
+	}
+	return new_map.Interface()
+}
+
 // a function that unpacks a byte array into an object
 func Unpack(bytes []byte, obj interface{}) (any, error) {
 	unpacked := Deserialize(bytes)
 
 	v := reflect.ValueOf(obj).Elem()
+
 	for key, val := range unpacked.(map[any]any) {
 		field := v.FieldByName(key.(string))
+		packed_map_type := reflect.TypeOf(val)
+		object_map_type := reflect.TypeOf(field.Interface())
+
+		if field.Kind() == reflect.Map && object_map_type != packed_map_type {
+			object_map_key_type := object_map_type.Key()
+			object_map_val_type := object_map_type.Elem()
+			new_map := convertMap(val.(map[any]any), object_map_key_type, object_map_val_type)
+			field.Set(reflect.ValueOf(new_map))
+			continue
+		}
+
 		field.Set(reflect.ValueOf(val))
+
 	}
 
 	return unpacked, nil

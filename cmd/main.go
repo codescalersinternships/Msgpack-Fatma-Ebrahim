@@ -45,6 +45,8 @@ func main() {
 	unpacked_val := unpacked.(map[any]any)
 	fmt.Printf("Unpacked: %+v\n", unpacked_val["Typed"])
 
+	fmt.Printf("object: %+v\n", obj)
+
 	ser := msgpack.Serialize(typed_map)
 	fmt.Printf("Serialized: %+v\n", ser)
 
