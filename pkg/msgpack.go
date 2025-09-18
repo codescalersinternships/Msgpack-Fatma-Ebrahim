@@ -87,7 +87,7 @@ type Object struct {
 	Snum     int16
 	Fnum     float32
 	Str      string
-	Arr      []byte
+	Arr      []float32
 	Mapp     map[any]any
 	Typed    map[float32]int16
 }
@@ -408,7 +408,7 @@ func decodeSize(value []byte) int {
 	return 0
 }
 
-func decodeArray16(value []byte) ([]any, int) {
+func decodeArray16(value []byte) (any, int) {
 	size := decodeSize(value[:2])
 	data := value[2:]
 	array := make([]any, size)
@@ -423,7 +423,7 @@ func decodeArray16(value []byte) ([]any, int) {
 	return array, overallOffset + 3
 }
 
-func decodeArray32(value []byte) ([]any, int) {
+func decodeArray32(value []byte) (any, int) {
 	size := decodeSize(value[:4])
 	data := value[4:]
 	array := make([]any, size)
@@ -708,6 +708,14 @@ func convertMap(m map[any]any, key_type reflect.Type, value_type reflect.Type) a
 	return new_map.Interface()
 }
 
+func convertArray(arr []any, value_type reflect.Type) any {
+	new_slice := reflect.MakeSlice(reflect.SliceOf(value_type), 0, len(arr))
+	for _, val := range arr {
+		new_slice = reflect.Append(new_slice, reflect.ValueOf(val))
+	}
+	return new_slice.Interface()
+}
+
 // a function that unpacks a byte array into an object
 func Unpack(bytes []byte, obj interface{}) (any, error) {
 	unpacked := Deserialize(bytes)
@@ -724,6 +732,11 @@ func Unpack(bytes []byte, obj interface{}) (any, error) {
 			object_map_val_type := object_map_type.Elem()
 			new_map := convertMap(val.(map[any]any), object_map_key_type, object_map_val_type)
 			field.Set(reflect.ValueOf(new_map))
+			continue
+		} else if field.Kind() == reflect.Slice && object_map_type != packed_map_type {
+			object_slice_type := object_map_type.Elem()
+			new_slice := convertArray(val.([]any), object_slice_type)
+			field.Set(reflect.ValueOf(new_slice))
 			continue
 		}
 

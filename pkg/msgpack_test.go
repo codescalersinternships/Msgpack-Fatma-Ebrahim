@@ -543,10 +543,10 @@ func TestAll(t *testing.T) {
 	})
 
 	t.Run("test pack and unpack with complex struct", func(t *testing.T) {
-		arr := make([]byte, 3)
-		arr[0] = 1
-		arr[1] = 2
-		arr[2] = 3
+		arr := make([]float32, 3)
+		arr[0] = 1.1
+		arr[1] = 2.2
+		arr[2] = 3.3
 
 		m := make(map[any]any)
 		m["hello"] = 10.0
